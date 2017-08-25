@@ -66,7 +66,7 @@ public:
     int numBands() const;
 
     // Return a pointer to the data in a raster band, row-major ordered.
-    uint8_t *data(const std::string& name);
+    double *data(const std::string& name);
 
     // Add a point to the raster grid.
     void addPoint(double x, double y, double z);

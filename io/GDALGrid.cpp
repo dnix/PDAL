@@ -148,26 +148,20 @@ int GDALGrid::numBands() const
 }
 
 
-uint8_t *GDALGrid::data(const std::string& name)
+double *GDALGrid::data(const std::string& name)
 {
-    if (name == "count")
-        return (m_outputTypes & statCount ?
-            (uint8_t *)m_count->data() : nullptr);
-    if (name == "min")
-        return (m_outputTypes & statMin ?
-            (uint8_t *)m_min->data() : nullptr);
-    if (name == "max")
-        return (m_outputTypes & statMax ?
-            (uint8_t *)m_max->data() : nullptr);
-    if (name == "mean")
-        return (m_outputTypes & statMean ?
-            (uint8_t *)m_mean->data() : nullptr);
-    if (name == "idw")
-        return (m_outputTypes & statIdw ?
-            (uint8_t *)m_idw->data() : nullptr);
-    if (name == "stdev")
-        return (m_outputTypes & statStdDev ?
-            (uint8_t *)m_stdDev->data() : nullptr);
+    if (name == "count" && (m_outputTypes & statCount))
+        return m_count->data();
+    if (name == "min" && (m_outputTypes & statMin))
+        return m_min->data();
+    if (name == "max" && (m_outputTypes & statMax))
+        return m_max->data();
+    if (name == "mean" && (m_outputTypes & statMean))
+        return m_mean->data();
+    if (name == "idw" && (m_outputTypes & statIdw))
+         return m_idw->data();
+    if (name == "stdev" && (m_outputTypes & statStdDev))
+        return m_stdDev->data();
     return nullptr;
 }
 

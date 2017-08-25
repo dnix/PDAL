@@ -88,11 +88,10 @@ void runGdalWriter(const Options& wo, const std::string& outfile,
     {
         throw pdal_error(raster.errorMsg());
     }
-    std::vector<uint8_t> data;
+    std::vector<double> data;
     raster.readBand(data, 1);
-    double *d = reinterpret_cast<double *>(data.data());
     for (size_t i = 0; i < arr.size(); ++i)
-        EXPECT_NEAR(arr[i], *d++, .001);
+        EXPECT_NEAR(arr[i], data[i], .001);
 }
 
 void runGdalWriter2(const Options& wo, const std::string& outfile,
@@ -152,11 +151,10 @@ void runGdalWriter2(const Options& wo, const std::string& outfile,
     {
         throw pdal_error(raster.errorMsg());
     }
-    std::vector<uint8_t> data;
+    std::vector<double> data;
     raster.readBand(data, 1);
-    double *d = reinterpret_cast<double *>(data.data());
     for (size_t i = 0; i < arr.size(); ++i)
-        EXPECT_NEAR(arr[i], *d++, .001);
+        EXPECT_NEAR(arr[i], data[i], .001);
 }
 
 }

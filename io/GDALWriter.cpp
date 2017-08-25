@@ -222,11 +222,13 @@ void GDALWriter::doneFile()
     gdal::GDALError err = raster.open(m_grid->width(), m_grid->height(),
         m_grid->numBands(), Dimension::Type::Double, m_grid->noData(),
         m_options);
+
     if (err != gdal::GDALError::None)
         throwError(raster.errorMsg());
     int bandNum = 1;
-    uint8_t *buf;
-    buf = m_grid->data("min");
+
+    // Perhaps the grid should return an iterator, which would work as well.
+    double *buf = m_grid->data("min");
     if (buf)
         raster.writeBand(buf, bandNum++, "min");
     buf = m_grid->data("max");
