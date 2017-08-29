@@ -34,6 +34,7 @@
 
 #include <pdal/GDALUtils.hpp>
 #include <pdal/SpatialReference.hpp>
+#include <pdal/util/Algorithm.hpp>
 #include <pdal/util/Utils.hpp>
 
 #include <functional>
@@ -52,6 +53,32 @@ namespace gdal
 
 namespace
 {
+
+/**
+  Convert a GDAL type string to a PDAL dimension type.
+
+  \param gdalType  String representing the GDAL type.
+  \return  PDAL type associated with \gdalType.
+*/
+Dimension::Type toPdalType(const std::string& gdalType)
+{
+    if (gdalType == "Byte")
+        return Dimension::Type::Unsigned8;
+    else if (gdalType == "UInt16")
+        return Dimension::Type::Unsigned16;
+    else if (gdalType == "Int16")
+        return Dimension::Type::Signed16;
+    else if (gdalType == "UInt32")
+        return Dimension::Type::Unsigned32;
+    else if (gdalType == "Int32")
+        return Dimension::Type::Signed32;
+    else if (gdalType == "Float32")
+        return Dimension::Type::Float;
+    else if (gdalType == "Float64")
+        return Dimension::Type::Double;
+    return Dimension::Type::None;
+}
+
 
 Dimension::Type toPdalType(GDALDataType t)
 {
@@ -366,6 +393,37 @@ GDALError Raster::open(int width, int height, int numBands,
         m_errorMsg = "Requested driver '" + m_drivername + "' does not "
             "support file creation.";
         return GDALError::InvalidDriver;
+    }
+
+    // Convert the string of supported GDAL types to a vector of PDAL types,
+    // ignoring types that aren't supported by PDAL (mostly complex values).
+    std::vector<Dimension::Type> types;
+    itemp = driver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
+    if (itemp)
+    {
+        item = itemp;
+        StringList items = Utils::split2(item, ' ');
+        for (auto& i : items)
+        {
+            Dimension::Type t = toPdalType(i);
+            if (t != Dimension::Type::None)
+                types.push_back(t);
+        }
+    }
+
+    // If requested type is not supported, return an error.
+    if (type != Dimension::Type::None && !Utils::contains(types, type))
+    {
+        m_errorMsg = "Requested type '" + Dimension::interpretationName(type) +
+            " not supported by GDAL driver.";
+        return GDALError::InvalidType;
+    }
+
+    // If no type is requested, take the "largest" one.
+    if (type == Dimension::Type::None)
+    {
+        std::sort(types.begin(), types.end());
+        type = types.back();
     }
 
     std::vector<const char *> opts;

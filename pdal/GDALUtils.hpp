@@ -294,7 +294,8 @@ enum class GDALError
     DriverNotFound,
     CantCreate,
     InvalidOption,
-    CantWriteBlock
+    CantWriteBlock,
+    InvalidType
 };
 
 struct InvalidBand {};

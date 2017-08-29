@@ -69,7 +69,7 @@ void GDALWriter::addArgs(ProgramArgs& args)
     args.add("output_type", "Statistics produced ('min', 'max', 'mean', "
         "'idw', 'count', 'stdev' or 'all')", m_outputTypeString, {"all"} );
     args.add("data_type", "Data type for output grid (\"int8\", \"uint64\", "
-        "\"float\", etc.)", m_dataType);
+        "\"float\", etc.)", m_dataType, Dimension::Type::Double);
     args.add("window_size", "Cell distance for fallback interpolation",
         m_windowSize);
     args.add("nodata", "No data value", m_noData, -9999.0);
@@ -222,7 +222,7 @@ void GDALWriter::doneFile()
     m_grid->finalize();
 
     gdal::GDALError err = raster.open(m_grid->width(), m_grid->height(),
-        m_grid->numBands(), Dimension::Type::Double, m_grid->noData(),
+        m_grid->numBands(), m_dataType, m_grid->noData(),
         m_options);
 
     if (err != gdal::GDALError::None)
@@ -231,23 +231,25 @@ void GDALWriter::doneFile()
 
     // Perhaps the grid should return an iterator, which would work as well.
     double *buf = m_grid->data("min");
-    if (buf)
-        raster.writeBand(buf, bandNum++, "min");
+    if (buf && err == gdal::GDALError::None)
+        err = raster.writeBand(buf, bandNum++, "min");
     buf = m_grid->data("max");
-    if (buf)
-        raster.writeBand(buf, bandNum++, "max");
+    if (buf && err == gdal::GDALError::None)
+        err = raster.writeBand(buf, bandNum++, "max");
     buf = m_grid->data("mean");
-    if (buf)
-        raster.writeBand(buf, bandNum++, "mean");
+    if (buf && err == gdal::GDALError::None)
+        err = raster.writeBand(buf, bandNum++, "mean");
     buf = m_grid->data("idw");
-    if (buf)
-        raster.writeBand(buf, bandNum++, "idw");
+    if (buf && err == gdal::GDALError::None)
+        err = raster.writeBand(buf, bandNum++, "idw");
     buf = m_grid->data("count");
-    if (buf)
-        raster.writeBand(buf, bandNum++, "count");
+    if (buf && err == gdal::GDALError::None)
+        err = raster.writeBand(buf, bandNum++, "count");
     buf = m_grid->data("stdev");
-    if (buf)
-        raster.writeBand(buf, bandNum++, "stdev");
+    if (buf && err == gdal::GDALError::None)
+        err = raster.writeBand(buf, bandNum++, "stdev");
+    if (err != gdal::GDALError::None)
+        throwError(raster.errorMsg());
 
     getMetadata().addList("filename", m_filename);
 }
