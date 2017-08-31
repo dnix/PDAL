@@ -2,7 +2,6 @@
 # Configure Travis CI service for http://github.com/PDAL
 language: cpp
 
-
 sudo:
     required
 
@@ -16,11 +15,12 @@ env:
   - PDAL_OPTIONAL_COMPONENTS=all
   - PDAL_OPTIONAL_COMPONENTS=none
 
-
-before_install: ./scripts/ci/before_install.sh
+before_install:
+  - docker pull alpine:edge
+  - ./scripts/ci/add_deploy_key.sh
 
 script:
-    docker run -v $TRAVIS_BUILD_DIR:/pdal -e CXX="$CXX" -e CC="$CC" -e PDAL_OPTIONAL_COMPONENTS="$PDAL_OPTIONAL_COMPONENTS" -t pdal/dependencies:latest /bin/sh -c "/pdal/scripts/ci/script.sh"
+    docker run -v $TRAVIS_BUILD_DIR:/pdal -e CXX="$CXX" -e CC="$CC" -e PDAL_OPTIONAL_COMPONENTS="$PDAL_OPTIONAL_COMPONENTS" -t alpine:edge /bin/sh -c "/pdal/scripts/ci/simple.sh"
 
 after_success:
   - echo "secure travis:" "$TRAVIS_SECURE_ENV_VARS"

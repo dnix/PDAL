@@ -1,11 +1,9 @@
-#!/bin/bash -e
+#!/bin/sh -e
 # Builds and tests PDAL
 
-clang --version
 gcc --version
 
 cd /pdal
-source ./scripts/ci/common.sh
 
 mkdir -p _build || exit 1
 cd _build || exit 1
