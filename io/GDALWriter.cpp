@@ -72,7 +72,8 @@ void GDALWriter::addArgs(ProgramArgs& args)
         "\"float\", etc.)", m_dataType, Dimension::Type::Double);
     args.add("window_size", "Cell distance for fallback interpolation",
         m_windowSize);
-    args.add("nodata", "No data value", m_noData, -9999.0);
+    args.add("nodata", "No data value", m_noData,
+        std::numeric_limits<double>::quiet_NaN());
     args.add("dimension", "Dimension to use", m_interpDimString, "Z");
     args.add("bounds", "Bounds of data.  Required in streaming mode.",
         m_bounds);
@@ -142,7 +143,7 @@ void GDALWriter::createGrid(BOX2D bounds)
     m_curBounds = bounds;
     size_t width = ((m_curBounds.maxx - m_curBounds.minx) / m_edgeLength) + 1;
     size_t height = ((m_curBounds.maxy - m_curBounds.miny) / m_edgeLength) + 1;
-    m_grid.reset(new GDALGrid(width, height, m_edgeLength, m_radius, m_noData,
+    m_grid.reset(new GDALGrid(width, height, m_edgeLength, m_radius,
         m_outputTypes, m_windowSize));
 }
 
@@ -222,32 +223,33 @@ void GDALWriter::doneFile()
     m_grid->finalize();
 
     gdal::GDALError err = raster.open(m_grid->width(), m_grid->height(),
-        m_grid->numBands(), m_dataType, m_grid->noData(),
-        m_options);
+        m_grid->numBands(), m_dataType, m_noData, m_options);
 
     if (err != gdal::GDALError::None)
         throwError(raster.errorMsg());
     int bandNum = 1;
 
     // Perhaps the grid should return an iterator, which would work as well.
-    double *buf = m_grid->data("min");
-    if (buf && err == gdal::GDALError::None)
-        err = raster.writeBand(buf, bandNum++, "min");
-    buf = m_grid->data("max");
-    if (buf && err == gdal::GDALError::None)
-        err = raster.writeBand(buf, bandNum++, "max");
-    buf = m_grid->data("mean");
-    if (buf && err == gdal::GDALError::None)
-        err = raster.writeBand(buf, bandNum++, "mean");
-    buf = m_grid->data("idw");
-    if (buf && err == gdal::GDALError::None)
-        err = raster.writeBand(buf, bandNum++, "idw");
-    buf = m_grid->data("count");
-    if (buf && err == gdal::GDALError::None)
-        err = raster.writeBand(buf, bandNum++, "count");
-    buf = m_grid->data("stdev");
-    if (buf && err == gdal::GDALError::None)
-        err = raster.writeBand(buf, bandNum++, "stdev");
+    double *src;
+    src = m_grid->data("min");
+    double srcNoData = std::numeric_limits<double>::quiet_NaN();
+    if (src && err == gdal::GDALError::None)
+        err = raster.writeBand(src, srcNoData, bandNum++, "min");
+    src = m_grid->data("max");
+    if (src && err == gdal::GDALError::None)
+        err = raster.writeBand(src, srcNoData, bandNum++, "max");
+    src = m_grid->data("mean");
+    if (src && err == gdal::GDALError::None)
+        err = raster.writeBand(src, srcNoData, bandNum++, "mean");
+    src = m_grid->data("idw");
+    if (src && err == gdal::GDALError::None)
+        err = raster.writeBand(src, srcNoData, bandNum++, "idw");
+    src = m_grid->data("count");
+    if (src && err == gdal::GDALError::None)
+        err = raster.writeBand(src, srcNoData, bandNum++, "count");
+    src = m_grid->data("stdev");
+    if (src && err == gdal::GDALError::None)
+        err = raster.writeBand(src, srcNoData, bandNum++, "stdev");
     if (err != gdal::GDALError::None)
         throwError(raster.errorMsg());
 

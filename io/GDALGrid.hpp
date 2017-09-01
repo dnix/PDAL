@@ -58,7 +58,7 @@ public:
     };
 
     GDALGrid(size_t width, size_t height, double edgeLength, double radius,
-        double noData, int outputTypes, size_t windowSize);
+        int outputTypes, size_t windowSize);
 
     void expand(size_t width, size_t height, size_t xshift, size_t yshift);
 
@@ -80,16 +80,12 @@ public:
     size_t height() const
         { return m_height; }
 
-    double noData() const
-        { return m_noData; }
-
 private:
     size_t m_width;
     size_t m_height;
     size_t m_windowSize;
     double m_edgeLength;
     double m_radius;
-    double m_noData;
 
     typedef std::vector<double> DataVec;
     typedef std::unique_ptr<DataVec> DataPtr;

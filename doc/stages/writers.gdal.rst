@@ -125,6 +125,19 @@ gdalopts
         The INTERLEAVE GDAL driver option is not supported.  writers.gdal
         always uses BAND interleaving.
 
+.. _data_type:
+
+data_type
+    The data type to use for the output raster.  Many GDAL drivers only
+    support a limited set of output data types. The default value depends
+    on the driver.
+
+nodata
+    The value to use for a raster cell if no data exists in the input data
+    with which to compute an output cell value. [Default: depends on the
+    data_type_.  -9999 for float, double, int and short, 9999 for
+    unsigned int and unsigned short, 255 for unsigned char and -128 for char]
+
 .. _output_type:
 
 output_type

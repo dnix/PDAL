@@ -395,39 +395,11 @@ GDALError Raster::open(int width, int height, int numBands,
         return GDALError::InvalidDriver;
     }
 
-    // Convert the string of supported GDAL types to a vector of PDAL types,
-    // ignoring types that aren't supported by PDAL (mostly complex values).
-    std::vector<Dimension::Type> types;
-    itemp = driver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
-    if (itemp)
-    {
-        item = itemp;
-        StringList items = Utils::split2(item, ' ');
-        for (auto& i : items)
-        {
-            Dimension::Type t = toPdalType(i);
-            if (t != Dimension::Type::None)
-                types.push_back(t);
-        }
-    }
-
-    // If requested type is not supported, return an error.
-    if (type != Dimension::Type::None && !Utils::contains(types, type))
-    {
-        m_errorMsg = "Requested type '" + Dimension::interpretationName(type) +
-            " not supported by GDAL driver.";
-        return GDALError::InvalidType;
-    }
-
-    // If no type is requested, take the "largest" one.
-    if (type == Dimension::Type::None)
-    {
-        std::sort(types.begin(), types.end());
-        type = types.back();
-    }
+    GDALError error = validateType(type, driver);
+    if (error != GDALError::None)
+        return error;
 
     std::vector<const char *> opts;
-
     for (size_t i = 0; i < options.size(); ++i)
     {
         if (options[i].find("INTERLEAVE") == 0)
@@ -452,6 +424,27 @@ GDALError Raster::open(int width, int height, int numBands,
         m_ds->SetProjection(m_srs.getWKT().data());
 
     m_ds->SetGeoTransform(m_forwardTransform.data());
+    // If the nodata value is NaN, set a default based on type.
+    if (std::isnan(noData))
+    {
+        switch (type)
+        {
+        case Dimension::Type::Unsigned8:
+            noData = 255;
+            break;
+        case Dimension::Type::Signed8:
+            noData = -127;
+            break;
+        case Dimension::Type::Unsigned16:
+        case Dimension::Type::Unsigned32:
+            noData = 9999;
+            break;
+        default:
+            noData = -9999;
+            break;
+        }
+    }
+
     for (int i = 0; i < m_numBands; ++i)
     {
         GDALRasterBand *band = m_ds->GetRasterBand(i + 1);
@@ -511,6 +504,48 @@ GDALError Raster::open()
     if (computePDALDimensionTypes() == GDALError::InvalidBand)
         error = GDALError::InvalidBand;
     return error;
+}
+
+
+/**
+  \param type    Reqested type of the raster.
+  \param driver  Pointer to the GDAL driver being used to write the raster.
+  \return  Requested type, or if not supported, the preferred type to use
+      for the raster.
+*/
+GDALError Raster::validateType(Dimension::Type& type,
+    GDALDriver *driver)
+{
+    // Convert the string of supported GDAL types to a vector of PDAL types,
+    // ignoring types that aren't supported by PDAL (mostly complex values).
+    std::vector<Dimension::Type> types;
+    const char *itemp = driver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
+    if (itemp)
+    {
+        StringList items = Utils::split2(std::string(itemp), ' ');
+        for (auto& i : items)
+        {
+            Dimension::Type t = toPdalType(i);
+            if (t != Dimension::Type::None)
+                types.push_back(t);
+        }
+    }
+
+    // If requested type is not supported, return an error.
+    if (type != Dimension::Type::None && !Utils::contains(types, type))
+    {
+        m_errorMsg = "Requested type '" + Dimension::interpretationName(type) +
+            " not supported by GDAL driver.";
+        return GDALError::InvalidType;
+    }
+
+    // If no type is requested, take the "largest" one.
+    if (type == Dimension::Type::None)
+    {
+        std::sort(types.begin(), types.end());
+        type = types.back();
+    }
+    return GDALError::None;
 }
 
 

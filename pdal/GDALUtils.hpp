@@ -65,6 +65,9 @@ class SpatialReference;
 namespace gdal
 {
 
+template<typename ITER>
+using ITER_VAL = typename std::iterator_traits<ITER>::value_type;
+
 PDAL_DLL void registerDrivers();
 PDAL_DLL void unregisterDrivers();
 PDAL_DLL bool reprojectBounds(BOX3D& box, const std::string& srcSrs,
@@ -434,15 +437,31 @@ private:
       \param data  Pointer to beginning of band
     */
     template <typename SOURCE_ITER>
-    void write(SOURCE_ITER si)
+    void write(SOURCE_ITER si, ITER_VAL<SOURCE_ITER> srcNoData)
     {
         for (int y = 0; y < m_yBlockCnt; ++y)
             for (int x = 0; x < m_xBlockCnt; ++x)
-                writeBlock(x, y, si);
+                writeBlock(x, y, si, srcNoData);
+    }
+
+    T getNoData() const
+    {
+        // The destination nodata value was set on the band when the raster
+        // was opened.  Make sure it's valid for the band type and convert.
+        double noData = m_band->GetNoDataValue();
+        T t;
+        if (!Utils::numericCast(noData, t))
+        {
+            throw CantWriteBlock("Invalid nodata value " +
+                Utils::toString(noData) + " for output data_type '" +
+                Utils::typeidName<T>() + "'.");
+        }
+        return t;
     }
 
     template <typename SOURCE_ITER>
-    void writeBlock(int x, int y, SOURCE_ITER sourceBegin)
+    void writeBlock(int x, int y, SOURCE_ITER sourceBegin,
+        ITER_VAL<SOURCE_ITER> srcNoData)
     {
         int xWidth = 0;
         if (x == m_xBlockCnt - 1)
@@ -456,10 +475,10 @@ private:
        if (yHeight == 0)
             yHeight = m_yBlockSize;
 
-        // Go through rows copying data.
+        T dstNoData = getNoData();
         auto di = m_buf.begin();
-        // Go through rows copying data.  Increment the buffer pointer by the
-        // width of the row.
+        // Go through rows copying data.  Increment the destination iterator
+        // by the width of the row.
         for (int row = 0; row < yHeight; ++row)
         {
             // Find the offset location in the source container.
@@ -467,16 +486,21 @@ private:
             int partialRowElts = m_xBlockSize * x;
 
             auto si = sourceBegin + (wholeRowElts + partialRowElts);
-            using SOURCE_VALUE =
-                typename std::iterator_traits<SOURCE_ITER>::value_type;
             std::transform(si, si + m_xBlockSize, di,
-                [](SOURCE_VALUE s){
+                [srcNoData, dstNoData](ITER_VAL<SOURCE_ITER> s){
                     T t;
-                    if (!Utils::numericCast(s, t))
+
+                    if (srcNoData == s ||
+                        (std::isnan(srcNoData) && std::isnan(s)))
+                        t = dstNoData;
+                    else
                     {
+                        if (!Utils::numericCast(s, t))
+                        {
                         throw CantWriteBlock("Unable to convert data for "
                             "raster type as requested: " + Utils::toString(s) +
                             " -> " + Utils::typeidName<T>());
+                        }
                     }
                     return t;
                 });
@@ -531,7 +555,7 @@ public:
       \param height  Height of the raster in cells (Y direction)
       \param numBands  Number of bands in the raster.
       \param type  Datatype (int, float, etc.) of the raster data.
-      \param noData  Value that indiciates no data in a raster cell.
+      \param noData  Value that indiciates no data in the output raster cell.
       \param options  GDAL driver options.
     */
     GDALError open(int width, int height, int numBands, Dimension::Type type,
@@ -580,45 +604,47 @@ public:
       Write an entire raster band (layer) into raster to be written with GDAL.
 
       \param data  Linearized raster data to be written.
+      \param noData  No-data value in the source data.
       \param nBand  Band number to write.
       \param name  Name of the raster band.
     */
     template<typename SOURCE_ITER>
-    GDALError writeBand(SOURCE_ITER si, int nBand, const std::string& name = "")
+    GDALError writeBand(SOURCE_ITER si, ITER_VAL<SOURCE_ITER> srcNoData,
+        int nBand, const std::string& name = "")
     {
         try
         {
             switch(m_bandType)
             {
                 case Dimension::Type::Unsigned8:
-                    Band<uint8_t>(m_ds, nBand, name).write(si);
+                    Band<uint8_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Signed8:
-                    Band<int8_t>(m_ds, nBand, name).write(si);
+                    Band<int8_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Unsigned16:
-                    Band<uint16_t>(m_ds, nBand, name).write(si);
+                    Band<uint16_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Signed16:
-                    Band<int16_t>(m_ds, nBand, name).write(si);
+                    Band<int16_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Unsigned32:
-                    Band<uint32_t>(m_ds, nBand, name).write(si);
+                    Band<uint32_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Signed32:
-                    Band<int32_t>(m_ds, nBand, name).write(si);
+                    Band<int32_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Unsigned64:
-                    Band<uint64_t>(m_ds, nBand, name).write(si);
+                    Band<uint64_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Signed64:
-                    Band<int64_t>(m_ds, nBand, name).write(si);
+                    Band<int64_t>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Float:
-                    Band<float>(m_ds, nBand, name).write(si);
+                    Band<float>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::Double:
-                    Band<double>(m_ds, nBand, name).write(si);
+                    Band<double>(m_ds, nBand, name).write(si, srcNoData);
                     break;
                 case Dimension::Type::None:
                     throw CantWriteBlock();
@@ -715,6 +741,7 @@ private:
     mutable std::vector<pdal::Dimension::Type> m_types;
     std::vector<std::array<double, 2>> m_block_sizes;
 
+    GDALError validateType(Dimension::Type& type, GDALDriver *driver);
     bool getPixelAndLinePosition(double x, double y,
         int32_t& pixel, int32_t& line);
     GDALError computePDALDimensionTypes();

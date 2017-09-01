@@ -44,10 +44,9 @@ namespace pdal
 {
 
 GDALGrid::GDALGrid(size_t width, size_t height, double edgeLength,
-        double radius, double noData, int outputTypes, size_t windowSize) :
+        double radius, int outputTypes, size_t windowSize) :
     m_width(width), m_height(height), m_windowSize(windowSize),
-    m_edgeLength(edgeLength), m_radius(radius), m_noData(noData),
-    m_outputTypes(outputTypes)
+    m_edgeLength(edgeLength), m_radius(radius), m_outputTypes(outputTypes)
 {
     size_t size(width * height);
 
@@ -385,15 +384,15 @@ void GDALGrid::finalize()
 void GDALGrid::fillNodata(size_t i)
 {
     if (m_min)
-        (*m_min)[i] = m_noData;
+        (*m_min)[i] = std::numeric_limits<double>::quiet_NaN();
     if (m_max)
-        (*m_max)[i] = m_noData;
+        (*m_max)[i] = std::numeric_limits<double>::quiet_NaN();
     if (m_mean)
-        (*m_mean)[i] = m_noData;
+        (*m_mean)[i] = std::numeric_limits<double>::quiet_NaN();
     if (m_idw)
-        (*m_idw)[i] = m_noData;
+        (*m_idw)[i] = std::numeric_limits<double>::quiet_NaN();
     if (m_stdDev)
-        (*m_stdDev)[i] = m_noData;
+        (*m_stdDev)[i] = std::numeric_limits<double>::quiet_NaN();
 }
 
 
