@@ -1,5 +1,7 @@
 FROM alpine:edge
 
+ADD . /pdal
+
 RUN \
     echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories; \
     apk update; \
