@@ -7,6 +7,7 @@ RUN \
     apk update; \
     apk add --no-cache --virtual .build-deps \
         alpine-sdk \
+        cmake \
         eigen-dev \
         hexer-dev \
         nitro-dev \
@@ -28,7 +29,6 @@ RUN \
         linux-headers \
     ; \
     apk add --no-cache \
-        cmake \
         hexer \
         nitro \
         gdal \
@@ -38,7 +38,7 @@ RUN \
         libxml2 \
         python \
         py-numpy \
-        jsconcpp \
+        jsoncpp \
         hdf5 \
         proj4 \
         cpd \
