@@ -69,4 +69,5 @@ cmake .. \
     -DWITH_TESTS=ON
 
 make -j2
-make test
+LD_LIBRARY_PATH=./lib
+PGUSER=postgres ctest -V
