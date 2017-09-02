@@ -5,9 +5,12 @@ sudo: required
 
 services: docker
 
-before_install: ./scripts/ci/add_deploy_key.sh
+before_install:
+  - docker pull alpine:edge
+  - ./scripts/ci/add_deploy_key.sh
 
-script: docker build -f Dockerfile -t pdal/pdal:alpine .
+script:
+  - docker run -v $TRAVIS_BUILD_DIR:/pdal -e CXX="$CXX" -e CC="$CC" -e PDAL_OPTIONAL_COMPONENTS="$PDAL_OPTIONAL_COMPONENTS" -t alpine:edge /bin/sh -c "/pdal/scripts/ci/simple.sh"
 
 after_success:
   - echo "secure travis:" "$TRAVIS_SECURE_ENV_VARS"
