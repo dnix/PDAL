@@ -65,7 +65,8 @@ cmake .. \
     -DBUILD_PLUGIN_ICEBRIDGE=ON \
     -DBUILD_PLUGIN_PGPOINTCLOUD=ON \
     -DWITH_LASZIP=ON \
-    -DWITH_LAZPERF=ON
+    -DWITH_LAZPERF=ON \
+    -DWITH_TESTS=ON
 
 make -j2
-
+make test
