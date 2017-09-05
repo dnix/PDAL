@@ -7,14 +7,13 @@ services: docker
 
 before_install:
   - docker pull alpine:edge
-  - ./scripts/ci/add_deploy_key.sh
 
 script:
-  - docker run -v $TRAVIS_BUILD_DIR:/pdal -e CXX="$CXX" -e CC="$CC" -e PDAL_OPTIONAL_COMPONENTS="$PDAL_OPTIONAL_COMPONENTS" -t alpine:edge /bin/sh -c "/pdal/scripts/ci/simple.sh"
+  - docker run -v $TRAVIS_BUILD_DIR:/pdal -t alpine:edge /bin/sh -c "/pdal/scripts/ci/simple.sh"
 
 after_success:
   - echo "secure travis:" "$TRAVIS_SECURE_ENV_VARS"
-  - sh -c 'if test "$TRAVIS_SECURE_ENV_VARS" = "true" -a "$TRAVIS_BRANCH" = "1.5-maintenance" -a "$PDAL_OPTIONAL_COMPONENTS" = "all"; then echo "publish website"; ./scripts/ci/build_docs.sh; ./scripts/ci/add_deploy_key.sh; ./scripts/ci/deploy_website.sh $TRAVIS_BUILD_DIR/doc/build /tmp; fi'
+  - sh -c 'if test "$TRAVIS_SECURE_ENV_VARS" = "true" -a "$TRAVIS_BRANCH" = "1.5-maintenance"; then echo "publish website"; ./scripts/ci/build_docs.sh; ./scripts/ci/add_deploy_key.sh; ./scripts/ci/deploy_website.sh $TRAVIS_BUILD_DIR/doc/build /tmp; fi'
 
 notifications:
   on_success: always

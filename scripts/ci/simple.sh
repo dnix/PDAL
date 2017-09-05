@@ -37,7 +37,6 @@ apk add \
     fgt-dev \
     sqlite \
     sqlite-dev \
-    postgresql \
     postgresql-dev \
     libcurl \
     curl-dev \
